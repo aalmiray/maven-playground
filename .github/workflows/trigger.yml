@@ -6,7 +6,7 @@ on:
       branch:
         description: "Branch to release from"
         required: true
-        default: "master"
+        default: "main"
       version:
         description: "Release version"
         required: true
@@ -26,13 +26,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 9
-
-      - name: Cache Maven
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
 
       # require successful build before tagging
       - name: Build
