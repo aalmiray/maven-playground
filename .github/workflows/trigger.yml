@@ -25,6 +25,13 @@ jobs:
         with:
           java-version: 9
 
+      - name: Cache Maven
+        uses: actions/cache@v2.1.4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
       - name: Build
         run: ./mvnw --no-transfer-progress -B --file pom.xml verify
 
@@ -56,5 +63,6 @@ jobs:
           git config --global user.email "bot@kordamp.org"
           git config --global user.name "Kordamp-bot"
           git commit -a -m "Releasing version $VERSION"
-          git tag v$VERSION -f
-          git push origin v$VERSION -f
+          git tag v$VERSION
+          git push origin $BRANCH
+          git push origin v$VERSION
