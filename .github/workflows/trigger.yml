@@ -52,6 +52,13 @@ jobs:
         with:
           java-version: 9
 
+      - name: Cache Maven
+        uses: actions/cache@v2.1.4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
       - name: Create tag
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
