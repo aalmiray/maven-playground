@@ -13,6 +13,24 @@ on:
 
 jobs:
   build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 9
+
+      - name: Build
+        run: ./mvnw --no-transfer-progress -B --file pom.xml verify
+
+  tag:
+    name: Tag
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,12 +45,9 @@ jobs:
         with:
           java-version: 9
 
-      # require successful build before tagging
-      - name: Build
-        run: ./mvnw --no-transfer-progress -B --file pom.xml verify
-
-      - name: Release from given branch with given version
+      - name: Create tag
         run: |
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
           BRANCH=${{ github.event.inputs.branch }}
           VERSION=${{ github.event.inputs.version }}
           echo "Releasing $VERSION from $BRANCH branch"
