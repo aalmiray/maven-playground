@@ -1,0 +1,55 @@
+name: Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to release from"
+        required: true
+        default: "master"
+      version:
+        description: "Release version"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          # required for triggering release workflow on tagging
+          token: ${{ secrets.GIT_ACCESS_TOKEN }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 9
+
+      - name: Cache Maven
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      # require successful build before tagging
+      - name: Build
+        run: ./mvnw --no-transfer-progress -B --file pom.xml verify
+
+      - name: Release from given branch with given version
+        run: |
+          BRANCH=${{ github.event.inputs.branch }}
+          VERSION=${{ github.event.inputs.version }}
+          echo "Releasing $VERSION from $BRANCH branch"
+          git checkout $BRANCH
+          git checkout -b release
+          ./mvnw -B versions:set versions:commit -DnewVersion=$VERSION
+          git config --global user.email "bot@kordamp.org"
+          git config --global user.name "Kordamp-bot"
+          git commit -a -m "Releasing version $VERSION"
+          git tag v$VERSION -f
+          git push origin v$VERSION -f
+          git checkout $BRANCH
+          git branch -D release

@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Version
+        id: version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 9
+
+      - name: Release
+        run: |
+          ./mvnw --no-transfer-progress -B --file pom.xml package \
+            com.github.ekryd.echo-maven-plugin:echo-maven-plugin:1.2.0:echo -Decho.message="Release"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload JAR
+        id: upload-jar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/sample-${{ steps.version.outputs.VERSION }}.jar
+          asset_name: sample-${{ steps.version.outputs.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  site:
+    name: Site
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 9
+
+      - name: Build site
+        run: |
+          ./mvnw --no-transfer-progress -B --file pom.xml \
+              com.github.ekryd.echo-maven-plugin:echo-maven-plugin:1.2.0:echo -Decho.message="Site"
+
+  announce:
+    name: Announce
+    needs: site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Version
+        id: version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Announce
+        run: |
+          ./mvnw --no-transfer-progress -B --file pom.xml \
+              com.github.ekryd.echo-maven-plugin:echo-maven-plugin:1.2.0:echo -Decho.message="Release v${{ steps.version.outputs.VERSION }} of ${{ github.repository }} has been published to Maven Central https://github.com/${{ github.repository }}"
