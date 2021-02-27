@@ -52,12 +52,9 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           echo "Releasing $VERSION from $BRANCH branch"
           git checkout $BRANCH
-          git checkout -b release
           ./mvnw -B versions:set versions:commit -DnewVersion=$VERSION
           git config --global user.email "bot@kordamp.org"
           git config --global user.name "Kordamp-bot"
           git commit -a -m "Releasing version $VERSION"
           git tag v$VERSION -f
           git push origin v$VERSION -f
-          git checkout $BRANCH
-          git branch -D release
